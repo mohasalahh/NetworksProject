@@ -10,6 +10,9 @@ import time
 import select
 import logging
 
+import AESEnryptionUtils
+
+
 # Server side of peer
 class PeerServer(threading.Thread):
 
@@ -191,7 +194,7 @@ class PeerClient(threading.Thread):
             self.tcpClientSocket.send(requestMessage.encode())
             print("Request message " + requestMessage + " is sent...")
             # received a response from the peer which the request message is sent to
-            self.responseReceived = self.tcpClientSocket.recv(1024).decode()
+            self.responseReceived = self.recieveEncryptedMessage()
             # logs the received message
             logging.info("Received from " + self.ipToConnect + ":" + str(self.portToConnect) + " -> " + self.responseReceived)
             print("Response is " + self.responseReceived)
@@ -414,7 +417,7 @@ class peerMain:
         message = "JOIN " + username + " " + password
         logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
         self.tcpClientSocket.send(message.encode())
-        response = self.tcpClientSocket.recv(1024).decode()
+        response = self.recieveEncryptedMessage()
         logging.info("Received from " + self.registryName + " -> " + response)
         if response == "join-success":
             print("Account created...")
@@ -425,7 +428,7 @@ class peerMain:
         message = "GETONLINE "+self.loginCredentials[0]
         logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
         self.tcpClientSocket.send(message.encode())
-        response = self.tcpClientSocket.recv(1024).decode()
+        response = self.recieveEncryptedMessage()
         logging.info("Received from " + self.registryName + " -> " + " ".join(response))
 
         return response
@@ -437,7 +440,7 @@ class peerMain:
         message = "LOGIN " + username + " " + password + " " + str(peerServerPort)
         logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
         self.tcpClientSocket.send(message.encode())
-        response = self.tcpClientSocket.recv(1024).decode()
+        response = self.recieveEncryptedMessage()
         logging.info("Received from " + self.registryName + " -> " + response)
         if response == "login-success":
             print("Logged in successfully...")
@@ -473,7 +476,7 @@ class peerMain:
         message = "SEARCH " + username
         logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
         self.tcpClientSocket.send(message.encode())
-        response = self.tcpClientSocket.recv(1024).decode().split()
+        response = self.recieveEncryptedMessage().split()
         logging.info("Received from " + self.registryName + " -> " + " ".join(response))
         if response[0] == "search-success":
             print(username + " is found successfully...")
@@ -493,6 +496,10 @@ class peerMain:
         self.udpClientSocket.sendto(message.encode(), (self.registryName, self.registryUDPPort))
         self.timer = threading.Timer(1, self.sendHelloMessage)
         self.timer.start()
+
+
+    def recieveEncryptedMessage(self):
+        return AESEnryptionUtils.AESEncryption().decrypt(self.tcpClientSocket.recv(1024).decode())
 
 # peer is started
 main = peerMain()

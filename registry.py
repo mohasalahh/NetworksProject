@@ -8,6 +8,8 @@ from socket import *
 import threading
 import select
 import logging
+
+import AESEnryptionUtils
 import db
 
 # This class is used to process the peer messages sent to registry
@@ -48,14 +50,14 @@ class ClientThread(threading.Thread):
                         response = "join-exist"
                         print("From-> " + self.ip + ":" + str(self.port) + " " + response)
                         logging.info("Send to " + self.ip + ":" + str(self.port) + " -> " + response)  
-                        self.tcpClientSocket.send(response.encode())
+                        self.sendEncryptedMessage(response)
                     # join-success is sent to peer,
                     # if an account with this username is not exist, and the account is created
                     else:
                         db.register(message[1], message[2])
                         response = "join-success"
                         logging.info("Send to " + self.ip + ":" + str(self.port) + " -> " + response) 
-                        self.tcpClientSocket.send(response.encode())
+                        self.sendEncryptedMessage(response)
                 #   LOGIN    #
                 elif message[0] == "LOGIN":
                     # login-account-not-exist is sent to peer,
@@ -63,13 +65,13 @@ class ClientThread(threading.Thread):
                     if not db.is_account_exist(message[1]):
                         response = "login-account-not-exist"
                         logging.info("Send to " + self.ip + ":" + str(self.port) + " -> " + response) 
-                        self.tcpClientSocket.send(response.encode())
+                        self.sendEncryptedMessage(response)
                     # login-online is sent to peer,
                     # if an account with the username already online
                     elif db.is_account_online(message[1]):
                         response = "login-online"
                         logging.info("Send to " + self.ip + ":" + str(self.port) + " -> " + response) 
-                        self.tcpClientSocket.send(response.encode())
+                        self.sendEncryptedMessage(response)
                     # login-success is sent to peer,
                     # if an account with the username exists and not online
                     else:
@@ -92,7 +94,7 @@ class ClientThread(threading.Thread):
                             # timer thread of the udp server is started
                             response = "login-success"
                             logging.info("Send to " + self.ip + ":" + str(self.port) + " -> " + response) 
-                            self.tcpClientSocket.send(response.encode())
+                            self.sendEncryptedMessage(response)
                             self.udpServer = UDPServer(self.username, self.tcpClientSocket)
                             self.udpServer.start()
                             self.udpServer.timer.start()
@@ -100,7 +102,7 @@ class ClientThread(threading.Thread):
                         else:
                             response = "login-wrong-password"
                             logging.info("Send to " + self.ip + ":" + str(self.port) + " -> " + response) 
-                            self.tcpClientSocket.send(response.encode())
+                            self.sendEncryptedMessage(response)
                 #   LOGOUT  #
                 elif message[0] == "LOGOUT":
                     # if user is online,
@@ -133,16 +135,16 @@ class ClientThread(threading.Thread):
                             peer_info = db.get_peer_ip_port(message[1])
                             response = "search-success " + peer_info[0] + ":" + peer_info[1]
                             logging.info("Send to " + self.ip + ":" + str(self.port) + " -> " + response) 
-                            self.tcpClientSocket.send(response.encode())
+                            self.sendEncryptedMessage(response)
                         else:
                             response = "search-user-not-online"
                             logging.info("Send to " + self.ip + ":" + str(self.port) + " -> " + response) 
-                            self.tcpClientSocket.send(response.encode())
+                            self.sendEncryptedMessage(response)
                     # enters if username does not exist 
                     else:
                         response = "search-user-not-found"
                         logging.info("Send to " + self.ip + ":" + str(self.port) + " -> " + response) 
-                        self.tcpClientSocket.send(response.encode())
+                        self.sendEncryptedMessage(response)
                 elif message[0] == "GETONLINE":
                     response = db.get_online_peers(message[1])
                     logging.info("Send to " + self.ip + ":" + str(self.port) + " -> " + response)
@@ -150,7 +152,7 @@ class ClientThread(threading.Thread):
                     if response == "":
                         response = "NOONLINEUSERS"
 
-                    self.tcpClientSocket.send(response.encode())
+                    self.sendEncryptedMessage(response)
             except OSError as oErr:
                 logging.error("OSError: {0}".format(oErr)) 
 
@@ -158,6 +160,10 @@ class ClientThread(threading.Thread):
     # function for resettin the timeout for the udp timer thread
     def resetTimeout(self):
         self.udpServer.resetTimer()
+
+    def sendEncryptedMessage(self, plainmessage):
+        self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(plainmessage).encode())
+
 
                             
 # implementation of the udp server thread for clients
