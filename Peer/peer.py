@@ -77,7 +77,8 @@ class PeerMain:
                       "[yellow]Search:[/yellow] 4\n" \
                       "[magenta]Start a chat:[/magenta] 5\n"
 
-        offline_text = "[bold cyan]Choose:[/bold cyan]\n" \
+        offline_text = "[bold cyan]Welcome to p2p chat[/bold cyan]\n" \
+                       "[bold cyan]Choose:[/bold cyan]\n" \
                        "[red]Create account:[/red] 1\n" \
                        "[green]Login:[/green] 2\n"
 
