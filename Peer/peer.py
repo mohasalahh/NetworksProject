@@ -1,9 +1,3 @@
-'''
-    ##  Implementation of peer
-    ##  Each peer has a client and a server side that runs on different threads
-    ##  150114822 - Eren Ulaş
-'''
-
 from socket import *
 import threading
 import logging
@@ -11,13 +5,23 @@ import logging
 from Utils import AESEnryptionUtils
 from PeerClient import PeerClient
 from PeerServer import PeerServer
+import atexit
+import signal
 
 
 # main process of the peer
-class peerMain:
+class PeerMain:
+
+    def exit_handler(self, *args):
+        del self
 
     # peer initializations
     def __init__(self):
+
+        atexit.register(self.exit_handler)
+        signal.signal(signal.SIGTERM, self.exit_handler)
+        signal.signal(signal.SIGINT, self.exit_handler)
+
         # ip address of the registry
         self.registryName = input("Enter IP address of registry: ")
         # self.registryName = 'localhost'
@@ -43,10 +47,29 @@ class peerMain:
         # timer initialization
         self.timer = None
 
-        choice = "0"
         # log file initialization
         logging.basicConfig(filename="../peer.log", level=logging.INFO)
-        # as long as the user is not logged out, asks to select an option in the menu
+
+        try:
+            self.run()
+        except BaseException as exception:
+            del self
+
+    def __del__(self):
+        if not self.isOnline:
+            return
+
+        self.logout(1)
+        self.isOnline = False
+        self.loginCredentials = (None, None)
+        self.peerServer.isOnline = False
+        self.peerServer.tcpServerSocket.close()
+        if self.peerClient is not None:
+            self.peerClient.tcpClientSocket.close()
+        print("Logged out successfully")
+
+    def run(self):
+        choice = "0"
         while choice != "3":
             # menu selection prompt
             choice = input("Choose: \nCreate account: 1\nLogin: 2\nLogout: 3\nSearch: 4\nStart a chat: 5\n")
@@ -146,7 +169,7 @@ class peerMain:
         # if main process is not ended with cancel selection
         # socket of the client is closed
         if choice != "CANCEL":
-            self.tcpClientSocket.close()
+            del self
 
     # account creation function
     def createAccount(self, username, password):
@@ -239,5 +262,4 @@ class peerMain:
         return AESEnryptionUtils.AESEncryption().decrypt(self.tcpClientSocket.recv(1024).decode())
 
 
-# peer is started
-main = peerMain()
+main = PeerMain()
