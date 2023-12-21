@@ -2,6 +2,8 @@ from socket import *
 import threading
 import logging
 
+from rich.console import Console
+
 from Utils import AESEnryptionUtils
 from PeerClient import PeerClient
 from PeerServer import PeerServer
@@ -69,33 +71,42 @@ class PeerMain:
         print("Logged out successfully")
 
     def run(self):
+        console = Console(color_system="windows")
+
         choice = "0"
-        online_text = "Choose: \nLogout: 3\nSearch: 4\nStart a chat: 5\n"
-        offline_text = "Choose: \nCreate account: 1\nLogin: 2\n"
+        online_text = "[bold cyan]Welcome to p2p chat[/bold cyan]\n" \
+                      "[purple]Logout:[/purple] 3\n" \
+                      "[yellow]Search:[/yellow] 4\n" \
+                      "[magenta]Start a chat:[/magenta] 5\n"
+
+        offline_text = "[bold cyan]Choose:[/bold cyan]\n" \
+                       "[red]Create account:[/red] 1\n" \
+                       "[green]Login:[/green] 2\n"
+
         while choice != "3":
             # menu selection prompt
-            choice = input(online_text if self.isOnline else offline_text)
+            choice = console.input(online_text if self.isOnline else offline_text)
             # if choice is 1, creates an account with the username
             # and password entered by the user
             if choice == "1":
-                username = input("username: ")
-                password = input("password: ")
+                username = console.input("[bold]username: [/bold]")
+                password = console.input("[bold]password: [/bold]")
 
                 self.createAccount(username, password)
             # if choice is 2 and user is not logged in, asks for the username
             # and the password to login
             elif choice == "2" and not self.isOnline:
-                username = input("username: ")
-                password = input("password: ")
+                username = console.input("[bold]username: [/bold]")
+                password = console.input("[bold]password: [/bold]")
                 # asks for the port number for server's tcp socket
-                peerServerPort = int(input("Enter a port number for peer server: "))
+                peer_server_port = int(console.input("Enter a port number for peer server: "))
 
-                status = self.login(username, password, peerServerPort)
+                status = self.login(username, password, peer_server_port)
                 # is user logs in successfully, peer variables are set
                 if status == 1:
                     self.isOnline = True
                     self.loginCredentials = (username, password)
-                    self.peerServerPort = peerServerPort
+                    self.peerServerPort = peer_server_port
                     # creates the server thread for this peer, and runs it
                     self.peerServer = PeerServer(self.loginCredentials[0], self.peerServerPort)
                     self.peerServer.start()
@@ -111,14 +122,14 @@ class PeerMain:
                 self.peerServer.tcpServerSocket.close()
                 if self.peerClient is not None:
                     self.peerClient.tcpClientSocket.close()
-                print("Logged out successfully")
+                print("Logged out successfully, Bye")
             # is peer is not logged in and exits the program
             elif choice == "3":
                 self.logout(2)
             # if choice is 4 and user is online, then user is asked
             # for a username that is wanted to be searched
             elif choice == "4" and self.isOnline:
-                username = input("Username to be searched: ")
+                username = console.input("[bold]Username to be searched: [/bold]")
                 searchStatus = self.searchUser(username)
                 # if user is found its ip address is shown to user
                 if searchStatus is not None and searchStatus != 0:
@@ -128,14 +139,14 @@ class PeerMain:
             elif choice == "5" and self.isOnline:
                 online_peers_response = self.request_online_peers()
                 if online_peers_response == "NOONLINEUSERS":
-                    print("No Online Peers")
+                    print("**No Online Peers**")
                 else:
                     online_peers = online_peers_response.split(",")
                     print("Online Peers(" + str(len(online_peers)) + "): ")
                     for peer in online_peers:
-                        print("User: ", peer)
+                        console.print("[green]"+peer+" is online[/green]")
 
-                    username = input("Choose a user and enter his/her username to start chat: ")
+                    username = console.input("Choose a user and enter his/her username to start chat: ")
                     searchStatus = self.searchUser(username)
                     # if searched user is found, then its ip address and port number is retrieved
                     # and a client thread is created
