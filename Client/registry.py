@@ -1,9 +1,10 @@
-from socket import *
-import select
 import logging
+from socket import *
+
+import select
 
 from Client.ClientServer import ClientThread
-from Client.configurations import port, portUDP, tcpThreads,db
+from Client.configurations import port, portUDP, tcpThreads
 
 # tcp and udp server port initializations
 print("Registy started...")
