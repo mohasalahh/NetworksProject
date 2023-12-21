@@ -1,3 +1,5 @@
+from rich.console import Console
+
 import db
 
 port = 15600
@@ -11,3 +13,5 @@ tcpThreads = {}
 
 # db initialization
 db = db.DB()
+
+console = Console(color_system="windows")

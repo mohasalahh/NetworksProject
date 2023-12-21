@@ -3,6 +3,10 @@ import threading
 import select
 import logging
 
+from Peer.configurations import console
+from Utils.AESEnryptionUtils import AESEncryption
+
+
 # Server side of peer
 class PeerServer(threading.Thread):
 
@@ -70,31 +74,31 @@ class PeerServer(threading.Thread):
                         # if the user is not chatting, then the ip and the socket of
                         # this peer is assigned to server variables
                         if self.isChatRequested == 0:
-                            print(self.username + " is connected from " + str(addr))
+                            console.print("[bold blue]"+self.username + "[/bold blue] is connected from " + str(addr))
                             self.connectedPeerSocket = connected
                             self.connectedPeerIP = addr[0]
                     # if the socket that receives the data is the one that
                     # is used to communicate with a connected peer, then enters here
                     else:
                         # message is received from connected peer
-                        messageReceived = s.recv(1024).decode()
+                        message_received = AESEncryption().decrypt(s.recv(1024).decode())
                         # logs the received message
-                        logging.info("Received from " + str(self.connectedPeerIP) + " -> " + str(messageReceived))
+                        logging.info("Received from " + str(self.connectedPeerIP) + " -> " + str(message_received))
                         # if message is a request message it means that this is the receiver side peer server
                         # so evaluate the chat request
-                        if len(messageReceived) > 11 and messageReceived[:12] == "CHAT-REQUEST":
+                        if len(message_received) > 11 and message_received[:12] == "CHAT-REQUEST":
                             # text for proper input choices is printed however OK or REJECT is taken as input in main process of the peer
                             # if the socket that we received the data belongs to the peer that we are chatting with,
                             # enters here
                             if s is self.connectedPeerSocket:
                                 # parses the message
-                                messageReceived = messageReceived.split()
+                                message_received = message_received.split()
                                 # gets the port of the peer that sends the chat request message
-                                self.connectedPeerPort = int(messageReceived[1])
+                                self.connectedPeerPort = int(message_received[1])
                                 # gets the username of the peer sends the chat request message
-                                self.chattingClientName = messageReceived[2]
+                                self.chattingClientName = message_received[2]
                                 # prints prompt for the incoming chat request
-                                print("Incoming chat request from " + self.chattingClientName + " >> ")
+                                console.print("Incoming chat request from [bold cyan]" + self.chattingClientName + "[/bold cyan] >> ")
                                 print("Enter OK to accept or REJECT to reject:  ")
                                 # makes isChatRequested = 1 which means that peer is chatting with someone
                                 self.isChatRequested = 1
@@ -104,34 +108,34 @@ class PeerServer(threading.Thread):
                                 # sends a busy message to the peer that sends a chat request when this peer is
                                 # already chatting with someone else
                                 message = "BUSY"
-                                s.send(message.encode())
+                                s.send(AESEncryption().encrypt(message).encode())
                                 # remove the peer from the inputs list so that it will not monitor this socket
                                 inputs.remove(s)
                         # if an OK message is received then ischatrequested is made 1 and then next messages will be shown to the peer of this server
-                        elif messageReceived == "OK":
+                        elif message_received == "OK":
                             self.isChatRequested = 1
                         # if an REJECT message is received then ischatrequested is made 0 so that it can receive any other chat requests
-                        elif messageReceived == "REJECT":
+                        elif message_received == "REJECT":
                             self.isChatRequested = 0
                             inputs.remove(s)
                         # if a message is received, and if this is not a quit message ':q' and
                         # if it is not an empty message, show this message to the user
-                        elif messageReceived[:2] != ":q" and len(messageReceived) != 0:
-                            print(self.chattingClientName + ": " + messageReceived)
+                        elif message_received[:2] != ":q" and len(message_received) != 0:
+                            console.print("[bold cyan]"+self.chattingClientName + ":[/bold cyan] " + message_received)
                         # if the message received is a quit message ':q',
                         # makes ischatrequested 1 to receive new incoming request messages
                         # removes the socket of the connected peer from the inputs list
-                        elif messageReceived[:2] == ":q":
+                        elif message_received[:2] == ":q":
                             self.isChatRequested = 0
                             inputs.clear()
                             inputs.append(self.tcpServerSocket)
                             # connected peer ended the chat
-                            if len(messageReceived) == 2:
+                            if len(message_received) == 2:
                                 print("User you're chatting with ended the chat")
                                 print("Press enter to quit the chat: ")
                         # if the message is an empty one, then it means that the
                         # connected user suddenly ended the chat(an error occurred)
-                        elif len(messageReceived) == 0:
+                        elif len(message_received) == 0:
                             self.isChatRequested = 0
                             inputs.clear()
                             inputs.append(self.tcpServerSocket)

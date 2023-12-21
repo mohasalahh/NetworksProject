@@ -5,6 +5,7 @@ import select
 
 from Client.ClientServer import ClientThread
 from Client.configurations import port, portUDP, tcpThreads
+from Utils.AESEnryptionUtils import AESEncryption
 
 # tcp and udp server port initializations
 print("Registy started...")
@@ -54,7 +55,7 @@ while inputs:
         elif s is udpSocket:
             # received the incoming udp message and parses it
             message, clientAddress = s.recvfrom(1024)
-            message = message.decode().split()
+            message = AESEncryption().decrypt(message.decode()).split()
             # checks if it is a hello message
             if message[0] == "HELLO":
                 # checks if the account that this hello message 

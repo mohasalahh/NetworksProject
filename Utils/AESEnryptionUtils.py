@@ -18,7 +18,7 @@ class AESEncryption:
 
     def decrypt(self, ciphertext):
         ciphertext_bytes = base64.b64decode(ciphertext)
-        iv = ciphertext_bytes[:self.i]
+        iv = ciphertext_bytes[:16]
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
         decrypted_bytes = cipher.decrypt(ciphertext_bytes[self.i:])
         decrypted_message = self._unpad(decrypted_bytes).decode('utf-8')

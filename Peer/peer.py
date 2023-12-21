@@ -2,8 +2,7 @@ from socket import *
 import threading
 import logging
 
-from rich.console import Console
-
+from Peer.configurations import console
 from Utils import AESEnryptionUtils
 from PeerClient import PeerClient
 from PeerServer import PeerServer
@@ -71,7 +70,6 @@ class PeerMain:
         print("Logged out successfully")
 
     def run(self):
-        console = Console(color_system="windows")
 
         choice = "0"
         online_text = "[bold cyan]Welcome to p2p chat[/bold cyan]\n" \
@@ -144,7 +142,7 @@ class PeerMain:
                     online_peers = online_peers_response.split(",")
                     print("Online Peers(" + str(len(online_peers)) + "): ")
                     for peer in online_peers:
-                        console.print("[green]"+peer+" is online[/green]")
+                        console.print("[green]•"+peer+" is online[/green]")
 
                     username = console.input("Choose a user and enter his/her username to start chat: ")
                     searchStatus = self.searchUser(username)
@@ -165,14 +163,14 @@ class PeerMain:
             elif choice == "OK" and self.isOnline:
                 okMessage = "OK " + self.loginCredentials[0]
                 logging.info("Send to " + self.peerServer.connectedPeerIP + " -> " + okMessage)
-                self.peerServer.connectedPeerSocket.send(okMessage.encode())
+                self.peerServer.connectedPeerSocket.send(AESEnryptionUtils.AESEncryption().encrypt(okMessage).encode())
                 self.peerClient = PeerClient(self.peerServer.connectedPeerIP, self.peerServer.connectedPeerPort,
                                              self.loginCredentials[0], self.peerServer, "OK")
                 self.peerClient.start()
                 self.peerClient.join()
             # if user rejects the chat request then reject message is sent to the requester side
             elif choice == "REJECT" and self.isOnline:
-                self.peerServer.connectedPeerSocket.send("REJECT".encode())
+                self.peerServer.connectedPeerSocket.send(AESEnryptionUtils.AESEncryption().encrypt("REJECT").encode())
                 self.peerServer.isChatRequested = 0
                 logging.info("Send to " + self.peerServer.connectedPeerIP + " -> REJECT")
             # if choice is cancel timer for hello message is cancelled
@@ -191,7 +189,7 @@ class PeerMain:
         # if response is exist then informs the user for account existence
         message = "JOIN " + username + " " + password
         logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
-        self.tcpClientSocket.send(message.encode())
+        self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
         response = self.recieveEncryptedMessage()
         logging.info("Received from " + self.registryName + " -> " + response)
         if response == "join-success":
@@ -202,7 +200,7 @@ class PeerMain:
     def request_online_peers(self):
         message = "GETONLINE " + self.loginCredentials[0]
         logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
-        self.tcpClientSocket.send(message.encode())
+        self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
         response = self.recieveEncryptedMessage()
         logging.info("Received from " + self.registryName + " -> " + " ".join(response))
 
@@ -214,7 +212,7 @@ class PeerMain:
         # an integer is returned according to each response
         message = "LOGIN " + username + " " + password + " " + str(peerServerPort)
         logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
-        self.tcpClientSocket.send(message.encode())
+        self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
         response = self.recieveEncryptedMessage()
         logging.info("Received from " + self.registryName + " -> " + response)
         if response == "login-success":
@@ -240,7 +238,7 @@ class PeerMain:
         else:
             message = "LOGOUT"
         logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
-        self.tcpClientSocket.send(message.encode())
+        self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
 
     # function for searching an online user
     def searchUser(self, username):
@@ -249,7 +247,7 @@ class PeerMain:
         # to this search message
         message = "SEARCH " + username
         logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
-        self.tcpClientSocket.send(message.encode())
+        self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
         response = self.recieveEncryptedMessage().split()
         logging.info("Received from " + self.registryName + " -> " + " ".join(response))
         if response[0] == "search-success":
@@ -267,7 +265,7 @@ class PeerMain:
     def sendHelloMessage(self):
         message = "HELLO " + self.loginCredentials[0]
         logging.info("Send to " + self.registryName + ":" + str(self.registryUDPPort) + " -> " + message)
-        self.udpClientSocket.sendto(message.encode(), (self.registryName, self.registryUDPPort))
+        self.udpClientSocket.sendto(AESEnryptionUtils.AESEncryption().encrypt(message).encode(), (self.registryName, self.registryUDPPort))
         self.timer = threading.Timer(1, self.sendHelloMessage)
         self.timer.start()
 
