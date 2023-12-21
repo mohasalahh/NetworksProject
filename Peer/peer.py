@@ -70,9 +70,11 @@ class PeerMain:
 
     def run(self):
         choice = "0"
+        online_text = "Choose: \nLogout: 3\nSearch: 4\nStart a chat: 5\n"
+        offline_text = "Choose: \nCreate account: 1\nLogin: 2\n"
         while choice != "3":
             # menu selection prompt
-            choice = input("Choose: \nCreate account: 1\nLogin: 2\nLogout: 3\nSearch: 4\nStart a chat: 5\n")
+            choice = input(online_text if self.isOnline else offline_text)
             # if choice is 1, creates an account with the username
             # and password entered by the user
             if choice == "1":
