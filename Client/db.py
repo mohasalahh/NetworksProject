@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 import hashlib
-
+import uuid
 
 # Includes database operations
 class DB:
@@ -25,6 +25,24 @@ class DB:
             "password": hashedPassword
         }
         self.db.accounts.insert(account)
+
+    def create_room(self, name):
+        id = uuid.uuid4()
+        room = {
+            "id": id,
+            "name": id
+        }
+        self.db.rooms.insert(room)
+
+    # 0-> normal, 1-> joined, 2-> left
+    def add_message_to_room(self, room_id, message, sender_username, message_type):
+        message = {
+            "room_id": room_id,
+            "message": message,
+            "sender_username": sender_username,
+            "message_type": message_type
+        }
+        self.db.room_messages.insert(message)
 
     # retrieves the password for a given username
     def get_password(self, username):
@@ -62,7 +80,6 @@ class DB:
             return comma_separated_usernames
 
         return ""
-
 
     def generate_pipeline(self, excluded_username):
         match_stage = {
