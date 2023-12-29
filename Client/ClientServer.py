@@ -162,7 +162,7 @@ class ClientThread(threading.Thread):
                     room = db.get_room(message[1])
                     members = room["members"]
 
-                    tcp_message = "SEND_ROOM_MESSAGE "+message[2]+" " + message[3] # user + message
+                    tcp_message = "SEND_ROOM_MESSAGE "+message[2]+" " + " ".join(message[3:]) # user + message
 
                     for member in members:
                         if member in tcpThreads:
@@ -172,15 +172,33 @@ class ClientThread(threading.Thread):
                     result = db.join_room(message[1], message[2])
 
                     if result:
-                        self.sendEncryptedMessage("success")
+                        self.sendEncryptedMessage("success-joining")
+
+                        room = db.get_room(message[1])
+                        members = room["members"]
+
+                        tcp_message = "SEND_ROOM_MESSAGE " + message[2] + " joined the room!"
+
+                        for member in members:
+                            if member in tcpThreads:
+                                tcpThreads[member].sendEncryptedMessage(tcp_message)
                     else:
-                        self.sendEncryptedMessage("error")
+                        self.sendEncryptedMessage("error-joining")
                 elif message[0] == "LEAVE_ROOM":
                     result = db.leave_room(message[1], message[2])
                     if result:
-                        self.sendEncryptedMessage("success")
+                        self.sendEncryptedMessage("success-leaving")
+
+                        room = db.get_room(message[1])
+                        members = room["members"]
+
+                        tcp_message = "SEND_ROOM_MESSAGE " + message[2] + " left the room!"
+
+                        for member in members:
+                            if member in tcpThreads:
+                                tcpThreads[member].sendEncryptedMessage(tcp_message)
                     else:
-                        self.sendEncryptedMessage("error")
+                        self.sendEncryptedMessage("error-leaving")
 
                 elif message[0] == "GETROOMINFO":
                     room = db.get_room(message[1])

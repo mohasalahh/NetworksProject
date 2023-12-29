@@ -332,7 +332,7 @@ class PeerMain:
         self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
         response = self.recieveEncryptedMessage().split()
 
-        if response[0] != "success":
+        if response[0] != "success-joining":
             print("Error joining room")
             return
 
@@ -352,21 +352,15 @@ class PeerMain:
             return
 
         message = "LEAVE_ROOM " + id + " " + self.loginCredentials[0]
-
         logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
         self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
-        response = self.recieveEncryptedMessage().split()
 
-        if response != "success":
-            print("Error joining room")
-            return
-
-        print("Left room")
+        # i will wait for response in the receiving thread
 
     def inside_room_waiting_to_send(self, id):
         while self.isInsideRoom:
-            message = input("Enter message: ")
-            if message == "CANCEL":
+            message = input("")
+            if message == "LEAVE":
                 self.leave_room(id)
                 break
             message = "SEND_TO_ROOM " + id + " " + self.loginCredentials[0] + " " + message
@@ -376,10 +370,16 @@ class PeerMain:
     def inside_room_receiving(self, id):
         while self.isInsideRoom:
             response = self.recieveEncryptedMessage().split()  # SEND_ROOM_MESSAGE roomid username message
-            if response[0] != "SEND_ROOM_MESSAGE":
-                continue
-
-            print(f"{response[1]}: {response[2]}")
+            if response[0] == "SEND_ROOM_MESSAGE":
+                message_username = response[1]
+                if message_username == self.loginCredentials[0]:
+                    message_username = "You"
+                print(f"{message_username}: {' '.join(response[2:])}")
+            elif response[0] == "success-leaving":
+                self.isInsideRoom = False
+                print("Left room")
+            elif response[0] == "error-leaving":
+                print("Error Leaving")
 
     # function for sending hello message
     # a timer thread is used to send hello messages to udp socket of registry
