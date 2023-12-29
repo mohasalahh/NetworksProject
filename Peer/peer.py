@@ -336,7 +336,7 @@ class PeerMain:
             print("Error joining room")
             return
 
-        print(f"You are inside room \"{room_name}\", type LEAVE to leave the room")
+        print(f"You are inside room \"{room_name}\", type \\LEAVE to leave the room")
 
         self.isInsideRoom = True
 
@@ -360,7 +360,7 @@ class PeerMain:
     def inside_room_waiting_to_send(self, id):
         while self.isInsideRoom:
             message = input("")
-            if message == "LEAVE":
+            if message == "\\LEAVE":
                 self.leave_room(id)
                 break
             message = "SEND_TO_ROOM " + id + " " + self.loginCredentials[0] + " " + message
@@ -372,14 +372,21 @@ class PeerMain:
             response = self.recieveEncryptedMessage().split()  # SEND_ROOM_MESSAGE roomid username message
             if response[0] == "SEND_ROOM_MESSAGE":
                 message_username = response[1]
+                message = ' '.join(response[2:])
                 if message_username == self.loginCredentials[0]:
                     message_username = "You"
-                print(f"{message_username}: {' '.join(response[2:])}")
+
+                if message == "joined the room!":
+                    console.print(f"[bold green]{message_username} joined the room![/bold green]")
+                elif message == "left the room!":
+                    console.print(f"[bold red]{message_username} left the room![/bold red]")
+                else:
+                    console.print(f"[bold cyan]{message_username}:[/bold cyan] {message}")
             elif response[0] == "success-leaving":
                 self.isInsideRoom = False
-                print("Left room")
+                print("Left room\n")
             elif response[0] == "error-leaving":
-                print("Error Leaving")
+                print("Error Leaving\n")
 
     # function for sending hello message
     # a timer thread is used to send hello messages to udp socket of registry
