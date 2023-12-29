@@ -2,6 +2,7 @@ from pymongo import MongoClient
 import hashlib
 import uuid
 
+
 # Includes database operations
 class DB:
 
@@ -27,26 +28,45 @@ class DB:
         self.db.accounts.insert(account)
 
     def create_room(self, name):
-        id = uuid.uuid4()
+        id = str(uuid.uuid4())
         room = {
             "id": id,
-            "name": id
+            "name": name,
+            "members": []
         }
         self.db.rooms.insert(room)
 
-    # 0-> normal, 1-> joined, 2-> left
-    def add_message_to_room(self, room_id, message, sender_username, message_type):
-        message = {
-            "room_id": room_id,
-            "message": message,
-            "sender_username": sender_username,
-            "message_type": message_type
-        }
-        self.db.room_messages.insert(message)
+        return id
 
     # retrieves the password for a given username
     def get_password(self, username):
         return self.db.accounts.find_one({"username": username})["password"]
+
+    def get_room(self, id):
+        return self.db.rooms.find_one({"id": id})
+
+    def get_all_rooms(self):
+        cursor = self.db.rooms.find({}, {'name': 1,
+                                         'id': 1,
+                                         'members': 1})
+        result = []
+        for document in cursor:
+            id = document.get('id', '')
+            name = document.get('name', '')  # Replace 'name_field' with your actual name field name
+            list_count = len(document.get('members', []))  # Replace 'your_list_field_name'
+
+            result.append(f"{id}:{name}:{list_count}")
+
+        return ",".join(result)
+
+    def join_room(self, id, username):
+        result = self.db.rooms.update_one({'id': id}, {'$addToSet': {'members': username}})
+        print(result.matched_count > 0, result.modified_count > 0)
+        return result.matched_count > 0 or result.modified_count > 0
+
+    def leave_room(self, id, username):
+        result = self.db.rooms.update_one({'id': id}, {'$pull': {'members': username}})
+        return result.matched_count > 0 or result.modified_count > 0
 
     # checks if an account with the username online
     def is_account_online(self, username):
@@ -62,7 +82,9 @@ class DB:
             "ip": ip,
             "port": port
         }
-        self.db.online_peers.insert(online_peer)
+        self.db.online_peers.update_one({'username': username},
+                                        {'$set': online_peer},
+                                        upsert=True)
 
     # logs out the user 
     def user_logout(self, username):

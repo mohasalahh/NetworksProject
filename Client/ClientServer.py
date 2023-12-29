@@ -63,10 +63,6 @@ class ClientThread(threading.Thread):
                         self.sendEncryptedMessage(response)
                     # login-online is sent to peer,
                     # if an account with the username already online
-                    elif db.is_account_online(message[1]):
-                        response = "login-online"
-                        logging.info("Send to " + self.ip + ":" + str(self.port) + " -> " + response)
-                        self.sendEncryptedMessage(response)
                     # login-success is sent to peer,
                     # if an account with the username exists and not online
                     else:
@@ -140,6 +136,7 @@ class ClientThread(threading.Thread):
                         response = "search-user-not-found"
                         logging.info("Send to " + self.ip + ":" + str(self.port) + " -> " + response)
                         self.sendEncryptedMessage(response)
+
                 elif message[0] == "GETONLINE":
                     response = db.get_online_peers(message[1])
                     logging.info("Send to " + self.ip + ":" + str(self.port) + " -> " + response)
@@ -148,6 +145,52 @@ class ClientThread(threading.Thread):
                         response = "NOONLINEUSERS"
 
                     self.sendEncryptedMessage(response)
+
+                elif message[0] == "CREATE-ROOM":
+                    room_id = db.create_room(message[1])
+                    self.sendEncryptedMessage("success "+room_id)
+                    # TODO: - Handle Error
+
+                elif message[0] == "GETROOMS":
+                    all_rooms = db.get_all_rooms()
+                    if all_rooms == "":
+                        self.sendEncryptedMessage("NOROOMS")
+                    else:
+                        self.sendEncryptedMessage("success "+all_rooms)
+
+                elif message[0] == "SEND_TO_ROOM":
+                    room = db.get_room(message[1])
+                    members = room["members"]
+
+                    tcp_message = "SEND_ROOM_MESSAGE "+message[2]+" " + message[3] # user + message
+
+                    for member in members:
+                        if member in tcpThreads:
+                            tcpThreads[member].sendEncryptedMessage(tcp_message)
+
+                elif message[0] == "JOIN_ROOM":
+                    result = db.join_room(message[1], message[2])
+
+                    if result:
+                        self.sendEncryptedMessage("success")
+                    else:
+                        self.sendEncryptedMessage("error")
+                elif message[0] == "LEAVE_ROOM":
+                    result = db.leave_room(message[1], message[2])
+                    if result:
+                        self.sendEncryptedMessage("success")
+                    else:
+                        self.sendEncryptedMessage("error")
+
+                elif message[0] == "GETROOMINFO":
+                    room = db.get_room(message[1])
+                    logging.info("Send to " + self.ip + ":" + str(self.port) + " -> ")
+
+                    if room is None:
+                        self.sendEncryptedMessage("NOT_FOUND")
+                    else:
+                        self.sendEncryptedMessage("FOUND "+room["name"])
+
             except OSError as oErr:
                 logging.error("OSError: {0}".format(oErr))
 
@@ -157,4 +200,5 @@ class ClientThread(threading.Thread):
         self.udpServer.resetTimer()
 
     def sendEncryptedMessage(self, plainmessage):
+        print("senddddd", plainmessage)
         self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(plainmessage).encode())

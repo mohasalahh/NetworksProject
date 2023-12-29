@@ -35,12 +35,13 @@ tcpSocket.listen(5)
 # input sockets that are listened
 inputs = [tcpSocket, udpSocket]
 
+peer_threads = []
+
 # log file initialization
 logging.basicConfig(filename="registry.log", level=logging.INFO)
 
 # as long as at least a socket exists to listen registry runs
 while inputs:
-
     print("Listening for incoming connections...")
     # monitors for the incoming connections
     readable, writable, exceptional = select.select(inputs, [], [])
@@ -63,9 +64,8 @@ while inputs:
                 if message[1] in tcpThreads:
                     # resets the timeout for that peer since the hello message is received
                     tcpThreads[message[1]].resetTimeout()
-                    print("Hello is received from " + message[1])
-                    logging.info(
-                        "Received from " + clientAddress[0] + ":" + str(clientAddress[1]) + " -> " + " ".join(message))
+                    # print("Hello is received from " + message[1])
+                    # logging.info("Received from " + clientAddress[0] + ":" + str(clientAddress[1]) + " -> " + " ".join(message))
 
 # registry tcp socket is closed
 tcpSocket.close()

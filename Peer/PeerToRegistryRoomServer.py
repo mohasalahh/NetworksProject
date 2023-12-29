@@ -8,7 +8,7 @@ from Utils.AESEnryptionUtils import AESEncryption
 
 
 # Server side of peer
-class PeerServer(threading.Thread):
+class PeerToRegistryRoomServer(threading.Thread):
 
     # Peer server initialization
     def __init__(self, username, peerServerPort):
@@ -19,9 +19,7 @@ class PeerServer(threading.Thread):
         self.tcpServerSocket = socket(AF_INET, SOCK_STREAM)
         # port number of the peer server
         self.peerServerPort = peerServerPort
-        # if 1, then user is already chatting with someone
-        # if 0, then user is not chatting with anyone
-        self.isChatRequested = 0
+
         # keeps the socket for the peer that is connected to this peer
         self.connectedPeerSocket = None
         # keeps the ip of the peer that is connected to this peer's server

@@ -47,6 +47,7 @@ class PeerMain:
         self.peerClient = None
         # timer initialization
         self.timer = None
+        self.isInsideRoom = False
 
         # log file initialization
         logging.basicConfig(filename="../peer.log", level=logging.INFO)
@@ -75,7 +76,9 @@ class PeerMain:
         online_text = "[bold cyan]Welcome to p2p chat[/bold cyan]\n" \
                       "[purple]Logout:[/purple] 3\n" \
                       "[yellow]Search:[/yellow] 4\n" \
-                      "[magenta]Start a chat:[/magenta] 5\n"
+                      "[magenta]Start a 1-1 chat:[/magenta] 5\n" \
+                      "[magenta]Create a chat room:[/magenta] 6\n" \
+                      "[magenta]Join a chat room:[/magenta] 7\n"
 
         offline_text = "[bold cyan]Welcome to p2p chat[/bold cyan]\n" \
                        "[bold cyan]Choose:[/bold cyan]\n" \
@@ -143,7 +146,7 @@ class PeerMain:
                     online_peers = online_peers_response.split(",")
                     print("Online Peers(" + str(len(online_peers)) + "): ")
                     for peer in online_peers:
-                        console.print("[green]•"+peer+" is online[/green]")
+                        console.print("[green]•" + peer + " is online[/green]")
 
                     username = console.input("Choose a user and enter his/her username to start chat: ")
                     searchStatus = self.searchUser(username)
@@ -156,24 +159,45 @@ class PeerMain:
                                                      self.peerServer, None)
                         self.peerClient.start()
                         self.peerClient.join()
+
+            elif choice == "6":
+                chatroom_name = console.input("[bold]Enter chat room name: [/bold]")
+                self.create_new_room(chatroom_name)
+            elif choice == "7":
+                current_rooms = self.request_all_rooms()
+                if current_rooms == "":
+                    print("**No Rooms**")
+                else:
+                    rooms = current_rooms.split(",")
+                    print("Opened rooms(" + str(len(rooms)) + "): ")
+                    for room in rooms:
+                        room_info = room.split(":")
+                        console.print(f"[green]• {room_info[1]} ({room_info[2]} online) ({room_info[0]}) [/green]")
+
+                    chatroom_id = console.input("[bold]Enter chat room id: [/bold]")
+                    self.enter_room(chatroom_id)
+
             # if this is the receiver side then it will get the prompt to accept an incoming request during the main loop
             # that's why response is evaluated in main process not the server thread even though the prompt is printed by server
             # if the response is ok then a client is created for this peer with the OK message and that's why it will directly
             # sent an OK message to the requesting side peer server and waits for the user input
             # main process waits for the client thread to finish its chat
-            elif choice == "OK" and self.isOnline:
-                okMessage = "OK " + self.loginCredentials[0]
-                logging.info("Send to " + self.peerServer.connectedPeerIP + " -> " + okMessage)
-                self.peerServer.connectedPeerSocket.send(AESEnryptionUtils.AESEncryption().encrypt(okMessage).encode())
-                self.peerClient = PeerClient(self.peerServer.connectedPeerIP, self.peerServer.connectedPeerPort,
-                                             self.loginCredentials[0], self.peerServer, "OK")
-                self.peerClient.start()
-                self.peerClient.join()
-            # if user rejects the chat request then reject message is sent to the requester side
-            elif choice == "REJECT" and self.isOnline:
-                self.peerServer.connectedPeerSocket.send(AESEnryptionUtils.AESEncryption().encrypt("REJECT").encode())
-                self.peerServer.isChatRequested = 0
-                logging.info("Send to " + self.peerServer.connectedPeerIP + " -> REJECT")
+            elif self.peerServer.isChatRequested:
+                if choice == "OK":
+                    okMessage = "OK " + self.loginCredentials[0]
+                    logging.info("Send to " + self.peerServer.connectedPeerIP + " -> " + okMessage)
+                    self.peerServer.connectedPeerSocket.send(
+                        AESEnryptionUtils.AESEncryption().encrypt(okMessage).encode())
+                    self.peerClient = PeerClient(self.peerServer.connectedPeerIP, self.peerServer.connectedPeerPort,
+                                                 self.loginCredentials[0], self.peerServer, "OK")
+                    self.peerClient.start()
+                    self.peerClient.join()
+                # if user rejects the chat request then reject message is sent to the requester side
+                elif choice == "REJECT":
+                    self.peerServer.connectedPeerSocket.send(
+                        AESEnryptionUtils.AESEncryption().encrypt("REJECT").encode())
+                    self.peerServer.isChatRequested = 0
+                    logging.info("Send to " + self.peerServer.connectedPeerIP + " -> REJECT")
             # if choice is cancel timer for hello message is cancelled
             elif choice == "CANCEL":
                 self.timer.cancel()
@@ -223,8 +247,8 @@ class PeerMain:
             print("Account does not exist...")
             return 0
         elif response == "login-online":
-            print("Account is already online...")
-            return 2
+            print("Logged in successfully...")
+            return 1
         elif response == "login-wrong-password":
             print("Wrong password...")
             return 3
@@ -261,12 +285,108 @@ class PeerMain:
             print(username + " is not found")
             return None
 
+    def request_all_rooms(self):
+        message = "GETROOMS"
+        logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
+        self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
+        response = self.recieveEncryptedMessage().split()
+
+        if response[0] == "success":
+            return response[1]
+
+        return ""
+
+    def create_new_room(self, name):
+        message = "CREATE-ROOM " + name
+        logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
+        self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
+        response = self.recieveEncryptedMessage().split()
+
+        if response[0] == "success":
+            print("Room created")
+            self.enter_room(response[1])
+        elif response[0] == "error":
+            print("Error creating room")
+
+    def get_room_name(self, id):
+        message = "GETROOMINFO " + id
+        logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
+        self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
+        response = self.recieveEncryptedMessage().split()
+        logging.info("Received from " + self.registryName + " -> " + " ".join(response))
+
+        if response[0] == "FOUND":
+            return response[1]
+
+        return ""
+
+    def enter_room(self, id):
+        room_name = self.get_room_name(id)
+        if room_name == "":
+            print("Room Not Found!")
+            return
+
+        message = "JOIN_ROOM " + id + " " + self.loginCredentials[0]
+
+        logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
+        self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
+        response = self.recieveEncryptedMessage().split()
+
+        if response[0] != "success":
+            print("Error joining room")
+            return
+
+        print(f"You are inside room \"{room_name}\", type LEAVE to leave the room")
+
+        self.isInsideRoom = True
+
+        receiving_thread = threading.Thread(target=self.inside_room_receiving, args=(id,))
+        receiving_thread.start()
+
+        sending_thread = threading.Thread(target=self.inside_room_waiting_to_send, args=(id,))
+        sending_thread.start()
+        sending_thread.join()
+
+    def leave_room(self, id):
+        if not self.isInsideRoom:
+            return
+
+        message = "LEAVE_ROOM " + id + " " + self.loginCredentials[0]
+
+        logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
+        self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
+        response = self.recieveEncryptedMessage().split()
+
+        if response != "success":
+            print("Error joining room")
+            return
+
+        print("Left room")
+
+    def inside_room_waiting_to_send(self, id):
+        while self.isInsideRoom:
+            message = input("Enter message: ")
+            if message == "CANCEL":
+                self.leave_room(id)
+                break
+            message = "SEND_TO_ROOM " + id + " " + self.loginCredentials[0] + " " + message
+            # logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
+            self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
+
+    def inside_room_receiving(self, id):
+        while self.isInsideRoom:
+            response = self.recieveEncryptedMessage().split()  # SEND_ROOM_MESSAGE roomid username message
+            if response[0] != "SEND_ROOM_MESSAGE":
+                continue
+
+            print(f"{response[1]}: {response[2]}")
+
     # function for sending hello message
     # a timer thread is used to send hello messages to udp socket of registry
     def sendHelloMessage(self):
         message = "HELLO " + self.loginCredentials[0]
-        logging.info("Send to " + self.registryName + ":" + str(self.registryUDPPort) + " -> " + message)
-        self.udpClientSocket.sendto(AESEnryptionUtils.AESEncryption().encrypt(message).encode(), (self.registryName, self.registryUDPPort))
+        self.udpClientSocket.sendto(AESEnryptionUtils.AESEncryption().encrypt(message).encode(),
+                                    (self.registryName, self.registryUDPPort))
         self.timer = threading.Timer(1, self.sendHelloMessage)
         self.timer.start()
 
