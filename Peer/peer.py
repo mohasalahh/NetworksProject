@@ -241,16 +241,16 @@ class PeerMain:
         response = self.recieveEncryptedMessage()
         logging.info("Received from " + self.registryName + " -> " + response)
         if response == "login-success":
-            print("Logged in successfully...")
+            console.print("[bold green]Logged in successfully[/bold green]")
             return 1
         elif response == "login-account-not-exist":
-            print("Account does not exist...")
+            console.print("[bold red]Account does not exist[/bold red]")
             return 0
         elif response == "login-online":
-            print("Logged in successfully...")
+            console.print("[bold green]Logged in successfully[/bold green]")
             return 1
         elif response == "login-wrong-password":
-            print("Wrong password...")
+            console.print("[bold red]Wrong password[/bold red]")
             return 3
 
     # logout function
