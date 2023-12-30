@@ -148,8 +148,10 @@ class ClientThread(threading.Thread):
 
                 elif message[0] == "CREATE-ROOM":
                     room_id = db.create_room(message[1])
-                    self.sendEncryptedMessage("success "+room_id)
-                    # TODO: - Handle Error
+                    if room_id == "":
+                        self.sendEncryptedMessage("error")
+                    else:
+                        self.sendEncryptedMessage("success "+room_id)
 
                 elif message[0] == "GETROOMS":
                     all_rooms = db.get_all_rooms()

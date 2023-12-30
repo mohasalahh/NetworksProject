@@ -34,9 +34,9 @@ class DB:
             "name": name,
             "members": []
         }
-        self.db.rooms.insert(room)
+        result = self.db.rooms.insert(room)
 
-        return id
+        return id if result.matched_count > 0 or result.modified_count > 0 else ""
 
     # retrieves the password for a given username
     def get_password(self, username):
