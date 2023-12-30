@@ -339,6 +339,7 @@ class PeerMain:
         print(f"You are inside room \"{room_name}\", type \\LEAVE to leave the room")
 
         self.isInsideRoom = True
+        self.peerServer.isInsideRoom = True
 
         receiving_thread = threading.Thread(target=self.inside_room_receiving, args=(id,))
         receiving_thread.start()
@@ -384,6 +385,7 @@ class PeerMain:
                     console.print(f"[bold cyan]{message_username}:[/bold cyan] {message}")
             elif response[0] == "success-leaving":
                 self.isInsideRoom = False
+                self.peerServer.isInsideRoom = False
                 print("Left room\n")
             elif response[0] == "error-leaving":
                 print("Error Leaving\n")

@@ -30,6 +30,7 @@ class PeerServer(threading.Thread):
         self.connectedPeerPort = None
         # online status of the peer
         self.isOnline = True
+        self.isInsideRoom = False
         # keeps the username of the peer that this peer is chatting with
         self.chattingClientName = None
         self.isWaitingForRequestResponse = False
@@ -75,7 +76,7 @@ class PeerServer(threading.Thread):
                         # if the user is not chatting, then the ip and the socket of
                         # this peer is assigned to server variables
                         if self.isChatRequested == 0:
-                            console.print("[bold blue]"+self.username + "[/bold blue] is connected from " + str(addr))
+                            console.print("[bold blue]"+self.username + "[/bold blue] is trying to connect from " + str(addr))
                             self.connectedPeerSocket = connected
                             self.connectedPeerIP = addr[0]
                     # if the socket that receives the data is the one that
@@ -92,7 +93,16 @@ class PeerServer(threading.Thread):
                             # text for proper input choices is printed however OK or REJECT is taken as input in main process of the peer
                             # if the socket that we received the data belongs to the peer that we are chatting with,
                             # enters here
-                            if s is self.connectedPeerSocket:
+                            # if the socket that we received the data does not belong to the peer that we are chatting with
+                            # and if the user is already chatting with someone else(isChatRequested = 1), then enters here
+                            if (s is not self.connectedPeerSocket and self.isChatRequested == 1) or self.isInsideRoom:
+                                # sends a busy message to the peer that sends a chat request when this peer is
+                                # already chatting with someone else
+                                message = "BUSY"
+                                s.send(AESEncryption().encrypt(message).encode())
+                                # remove the peer from the inputs list so that it will not monitor this socket
+                                inputs.remove(s)
+                            elif s is self.connectedPeerSocket:
                                 # parses the message
                                 message_received = message_received.split()
                                 # gets the port of the peer that sends the chat request message
@@ -104,15 +114,6 @@ class PeerServer(threading.Thread):
                                 print("Enter OK to accept or REJECT to reject:  ")
                                 # makes isChatRequested = 1 which means that peer is chatting with someone
                                 self.isChatRequested = 1
-                            # if the socket that we received the data does not belong to the peer that we are chatting with
-                            # and if the user is already chatting with someone else(isChatRequested = 1), then enters here
-                            elif s is not self.connectedPeerSocket and self.isChatRequested == 1:
-                                # sends a busy message to the peer that sends a chat request when this peer is
-                                # already chatting with someone else
-                                message = "BUSY"
-                                s.send(AESEncryption().encrypt(message).encode())
-                                # remove the peer from the inputs list so that it will not monitor this socket
-                                inputs.remove(s)
                         # if an OK message is received then ischatrequested is made 1 and then next messages will be shown to the peer of this server
                         elif message_received == "OK":
                             self.isChatRequested = 1
