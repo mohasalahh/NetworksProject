@@ -1,5 +1,5 @@
 import threading
-import db
+from Client.configurations import db
 from Client.configurations import tcpThreads
 
 

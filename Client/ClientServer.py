@@ -220,5 +220,4 @@ class ClientThread(threading.Thread):
         self.udpServer.resetTimer()
 
     def sendEncryptedMessage(self, plainmessage):
-        print("senddddd", plainmessage)
         self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(plainmessage).encode())
