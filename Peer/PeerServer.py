@@ -147,5 +147,7 @@ class PeerServer(threading.Thread):
             # handles the exceptions, and logs them
             except OSError as oErr:
                 logging.error("OSError: {0}".format(oErr))
+                print("OSError: {0}".format(oErr))
             except ValueError as vErr:
                 logging.error("ValueError: {0}".format(vErr))
+                print("ValueError: {0}".format(vErr))
