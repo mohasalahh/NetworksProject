@@ -3,7 +3,9 @@ import threading
 import select
 import logging
 
+from LoadTesting import LoadTesting
 from Peer.configurations import console
+from Utils import AESEnryptionUtils
 from Utils.AESEnryptionUtils import AESEncryption
 
 
@@ -85,7 +87,7 @@ class PeerServer(threading.Thread):
                         # message is received from connected peer
                         message_received = AESEncryption().decrypt(s.recv(1024).decode())
                         # logs the received message
-                        logging.info("Received from " + str(self.connectedPeerIP) + " -> " + str(message_received))
+                        # logging.info("Received from " + str(self.connectedPeerIP) + " -> " + str(message_received))
                         # if message is a request message it means that this is the receiver side peer server
                         # so evaluate the chat request
                         if len(message_received) > 11 and message_received[:12] == "CHAT-REQUEST":
@@ -99,6 +101,8 @@ class PeerServer(threading.Thread):
                                 # sends a busy message to the peer that sends a chat request when this peer is
                                 # already chatting with someone else
                                 message = "BUSY"
+
+                                LoadTesting.log_send("Peer", message)
                                 s.send(AESEncryption().encrypt(message).encode())
                                 # remove the peer from the inputs list so that it will not monitor this socket
                                 inputs.remove(s)
@@ -146,8 +150,8 @@ class PeerServer(threading.Thread):
                             print("Press enter to quit the chat: ")
             # handles the exceptions, and logs them
             except OSError as oErr:
-                logging.error("OSError: {0}".format(oErr))
+                # logging.error("OSError: {0}".format(oErr))
                 print("OSError: {0}".format(oErr))
             except ValueError as vErr:
-                logging.error("ValueError: {0}".format(vErr))
+                # logging.error("ValueError: {0}".format(vErr))
                 print("ValueError: {0}".format(vErr))

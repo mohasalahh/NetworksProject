@@ -54,7 +54,7 @@ class RegistryThread(threading.Thread):
         peer_threads = []
 
         # log file initialization
-        logging.basicConfig(filename="registry.log", level=logging.INFO)
+        #logging.basicConfig(filename="registry.log", level=logging.INFO)
 
         # as long as at least a socket exists to listen registry runs
         while inputs:

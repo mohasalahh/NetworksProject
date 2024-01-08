@@ -2,6 +2,7 @@ from socket import *
 import threading
 import logging
 
+from LoadTesting import LoadTesting
 from Peer.configurations import console
 from Utils import AESEnryptionUtils
 
@@ -39,16 +40,18 @@ class PeerClient(threading.Thread):
             # composes a request message and this is sent to server and then this waits a response message from the server this client connects
             requestMessage = "CHAT-REQUEST " + str(self.peerServer.peerServerPort)+ " " + self.username
             # logs the chat request sent to other peer
-            logging.info("Send to " + self.ipToConnect + ":" + str(self.portToConnect) + " -> " + requestMessage)
+            #logging.info("Send to " + self.ipToConnect + ":" + str(self.portToConnect) + " -> " + requestMessage)
             # sends the chat request
-            self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(requestMessage).encode())
+            self.sendEncryptedMessage(requestMessage)
 
             console.print("[bold green]Request sent to user[/bold green]")
             # received a response from the peer which the request message is sent to
 
             self.responseReceived = AESEnryptionUtils.AESEncryption().decrypt(self.tcpClientSocket.recv(1024).decode())
+            LoadTesting.log_receive("Peer", self.responseReceived)
+
             # logs the received message
-            logging.info("Received from " + self.ipToConnect + ":" + str(self.portToConnect) + " -> " + self.responseReceived)
+            #logging.info("Received from " + self.ipToConnect + ":" + str(self.portToConnect) + " -> " + self.responseReceived)
             # print("Response is " + self.responseReceived)
             # parses the response for the chat request
             self.responseReceived = self.responseReceived.split()
@@ -66,8 +69,8 @@ class PeerClient(threading.Thread):
                     if messageSent != ":q":
                         console.print("[bold cyan]You:[/bold cyan] " + messageSent)
                     # sends the message to the connected peer, and logs it
-                    self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(messageSent).encode())
-                    logging.info("Send to " + self.ipToConnect + ":" + str(self.portToConnect) + " -> " + messageSent)
+                    self.sendEncryptedMessage(messageSent)
+                    #logging.info("Send to " + self.ipToConnect + ":" + str(self.portToConnect) + " -> " + messageSent)
                     # if the quit message is sent, then the server status is changed to not chatting
                     # and this is the side that is ending the chat
                     if messageSent == ":q":
@@ -80,10 +83,11 @@ class PeerClient(threading.Thread):
                         # tries to send a quit message to the connected peer
                         # logs the message and handles the exception
                         try:
-                            self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(":q ending-side").encode())
-                            logging.info("Send to " + self.ipToConnect + ":" + str(self.portToConnect) + " -> :q")
+                            self.sendEncryptedMessage(":q ending-side")
+                            #logging.info("Send to " + self.ipToConnect + ":" + str(self.portToConnect) + " -> :q")
                         except BrokenPipeError as bpErr:
-                            logging.error("BrokenPipeError: {0}".format(bpErr))
+                            pass
+                            #logging.error("BrokenPipeError: {0}".format(bpErr))
                     # closes the socket
                     self.responseReceived = None
                     self.tcpClientSocket.close()
@@ -92,8 +96,8 @@ class PeerClient(threading.Thread):
             elif self.responseReceived[0] == "REJECT":
                 self.peerServer.isChatRequested = 0
                 console.print("[bold red]User denied request[/bold red]")
-                self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt("REJECT").encode())
-                logging.info("Send to " + self.ipToConnect + ":" + str(self.portToConnect) + " -> REJECT")
+                self.sendEncryptedMessage("REJECT")
+                #logging.info("Send to " + self.ipToConnect + ":" + str(self.portToConnect) + " -> REJECT")
                 self.tcpClientSocket.close()
             # if a busy response is received, closes the socket
             elif self.responseReceived[0] == "BUSY":
@@ -106,8 +110,8 @@ class PeerClient(threading.Thread):
             self.peerServer.isChatRequested = 1
             # ok response is sent to the requester side
             okMessage = "ACCEPT"
-            self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(okMessage).encode())
-            logging.info("Send to " + self.ipToConnect + ":" + str(self.portToConnect) + " -> " + okMessage)
+            self.sendEncryptedMessage(okMessage)
+            #logging.info("Send to " + self.ipToConnect + ":" + str(self.portToConnect) + " -> " + okMessage)
             console.print("[bold green]Chat room started[/bold green]")
             # client can send messsages as long as the server status is chatting
             while self.peerServer.isChatRequested == 1:
@@ -115,8 +119,8 @@ class PeerClient(threading.Thread):
                 messageSent = input("")
                 if messageSent == ":q":
                     console.print("[bold cyan]You:[/bold cyan] " + messageSent)
-                self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(messageSent).encode())
-                logging.info("Send to " + self.ipToConnect + ":" + str(self.portToConnect) + " -> " + messageSent)
+                self.sendEncryptedMessage(messageSent)
+                #logging.info("Send to " + self.ipToConnect + ":" + str(self.portToConnect) + " -> " + messageSent)
                 # if a quit message is sent, server status is changed
                 if messageSent == ":q":
                     self.peerServer.isChatRequested = 0
@@ -127,7 +131,11 @@ class PeerClient(threading.Thread):
             # then closes the socket
             if self.peerServer.isChatRequested == 0:
                 if not self.isEndingChat:
-                    self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(":q ending-side").encode())
-                    logging.info("Send to " + self.ipToConnect + ":" + str(self.portToConnect) + " -> :q")
+                    self.sendEncryptedMessage(":q ending-side")
+                    #logging.info("Send to " + self.ipToConnect + ":" + str(self.portToConnect) + " -> :q")
                 self.responseReceived = None
                 self.tcpClientSocket.close()
+
+    def sendEncryptedMessage(self, message):
+        LoadTesting.log_send("Peer", message)
+        self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())

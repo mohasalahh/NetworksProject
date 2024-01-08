@@ -9,10 +9,10 @@
 
 from socket import *
 import threading
-import logging
 
 from Peer.configurations import console
 from Utils import AESEnryptionUtils
+from LoadTesting import LoadTesting
 from Peer.PeerClient import PeerClient
 from Peer.PeerServer import PeerServer
 import atexit
@@ -60,7 +60,7 @@ class PeerThread(threading.Thread):
         self.isInsideRoom = False
 
         # log file initialization
-        logging.basicConfig(filename="../peer.log", level=logging.INFO)
+        #logging.basicConfig(filename="../peer.log", level=#logging.INFO)
 
     def __del__(self):
         if not self.isOnline:
@@ -190,7 +190,7 @@ class PeerThread(threading.Thread):
             elif self.peerServer.isChatRequested:
                 if choice == "ACCEPT":
                     okMessage = "ACCEPT " + self.loginCredentials[0]
-                    logging.info("Send to " + self.peerServer.connectedPeerIP + " -> " + okMessage)
+                    #logging.info("Send to " + self.peerServer.connectedPeerIP + " -> " + okMessage)
                     self.peerServer.connectedPeerSocket.send(
                         AESEnryptionUtils.AESEncryption().encrypt(okMessage).encode())
                     self.peerClient = PeerClient(self.peerServer.connectedPeerIP, self.peerServer.connectedPeerPort,
@@ -202,7 +202,7 @@ class PeerThread(threading.Thread):
                     self.peerServer.connectedPeerSocket.send(
                         AESEnryptionUtils.AESEncryption().encrypt("REJECT").encode())
                     self.peerServer.isChatRequested = 0
-                    logging.info("Send to " + self.peerServer.connectedPeerIP + " -> REJECT")
+                    #logging.info("Send to " + self.peerServer.connectedPeerIP + " -> REJECT")
             # if choice is cancel timer for hello message is cancelled
             elif choice == "CANCEL":
                 self.timer.cancel()
@@ -218,10 +218,10 @@ class PeerThread(threading.Thread):
         # if response is success then informs the user for account creation
         # if response is exist then informs the user for account existence
         message = "JOIN " + username + " " + password
-        logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
-        self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
+        #logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
+        self.sendEncryptedMessage(message)
         response = self.recieveEncryptedMessage()
-        logging.info("Received from " + self.registryName + " -> " + response)
+        #logging.info("Received from " + self.registryName + " -> " + response)
         if response == "join-success":
             print("Account created...")
             return 1
@@ -231,10 +231,10 @@ class PeerThread(threading.Thread):
 
     def request_online_peers(self):
         message = "GETONLINE " + self.loginCredentials[0]
-        logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
-        self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
+        #logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
+        self.sendEncryptedMessage(message)
         response = self.recieveEncryptedMessage()
-        logging.info("Received from " + self.registryName + " -> " + " ".join(response))
+        #logging.info("Received from " + self.registryName + " -> " + " ".join(response))
 
         return response
 
@@ -243,10 +243,10 @@ class PeerThread(threading.Thread):
         # a login message is composed and sent to registry
         # an integer is returned according to each response
         message = "LOGIN " + username + " " + password + " " + str(peerServerPort)
-        logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
-        self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
+        #logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
+        self.sendEncryptedMessage(message)
         response = self.recieveEncryptedMessage()
-        logging.info("Received from " + self.registryName + " -> " + response)
+        #logging.info("Received from " + self.registryName + " -> " + response)
         if response == "login-success":
             console.print("[bold green]Logged in successfully[/bold green]")
             return 1
@@ -269,8 +269,8 @@ class PeerThread(threading.Thread):
             self.timer.cancel()
         else:
             message = "LOGOUT"
-        logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
-        self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
+        #logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
+        self.sendEncryptedMessage(message)
 
     # function for searching an online user
     def searchUser(self, username):
@@ -278,10 +278,10 @@ class PeerThread(threading.Thread):
         # custom value is returned according to each response
         # to this search message
         message = "SEARCH " + username
-        logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
-        self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
+        #logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
+        self.sendEncryptedMessage(message)
         response = self.recieveEncryptedMessage().split()
-        logging.info("Received from " + self.registryName + " -> " + " ".join(response))
+        #logging.info("Received from " + self.registryName + " -> " + " ".join(response))
         if response[0] == "search-success":
             print(username + " is found successfully...")
             return response[1]
@@ -294,8 +294,8 @@ class PeerThread(threading.Thread):
 
     def request_all_rooms(self):
         message = "GETROOMS"
-        logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
-        self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
+        #logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
+        self.sendEncryptedMessage(message)
         response = self.recieveEncryptedMessage().split()
 
         if response[0] == "success":
@@ -305,8 +305,8 @@ class PeerThread(threading.Thread):
 
     def create_new_room(self, name):
         message = "CREATE-ROOM " + name
-        logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
-        self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
+        #logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
+        self.sendEncryptedMessage(message)
         response = self.recieveEncryptedMessage().split()
 
         if response[0] == "success":
@@ -317,10 +317,10 @@ class PeerThread(threading.Thread):
 
     def get_room_name(self, id):
         message = "GETROOMINFO " + id
-        logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
-        self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
+        #logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
+        self.sendEncryptedMessage(message)
         response = self.recieveEncryptedMessage().split()
-        logging.info("Received from " + self.registryName + " -> " + " ".join(response))
+        #logging.info("Received from " + self.registryName + " -> " + " ".join(response))
 
         if response[0] == "FOUND":
             return response[1]
@@ -335,8 +335,8 @@ class PeerThread(threading.Thread):
 
         message = "JOIN_ROOM " + id + " " + self.loginCredentials[0]
 
-        logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
-        self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
+        #logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
+        self.sendEncryptedMessage(message)
         response = self.recieveEncryptedMessage().split()
 
         if response[0] != "success-joining":
@@ -360,8 +360,8 @@ class PeerThread(threading.Thread):
             return
 
         message = "LEAVE_ROOM " + id + " " + self.loginCredentials[0]
-        logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
-        self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
+        #logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
+        self.sendEncryptedMessage(message)
 
         # i will wait for response in the receiving thread
 
@@ -372,8 +372,8 @@ class PeerThread(threading.Thread):
                 self.leave_room(id)
                 break
             message = "SEND_TO_ROOM " + id + " " + self.loginCredentials[0] + " " + message
-            # logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
-            self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
+            # #logging.info("Send to " + self.registryName + ":" + str(self.registryPort) + " -> " + message)
+            self.sendEncryptedMessage(message)
 
     def inside_room_receiving(self, id):
         while self.isInsideRoom:
@@ -406,5 +406,12 @@ class PeerThread(threading.Thread):
         self.timer = threading.Timer(1, self.sendHelloMessage)
         self.timer.start()
 
+    def sendEncryptedMessage(self, message):
+        LoadTesting.log_send("Peer", message)
+        self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(message).encode())
+
     def recieveEncryptedMessage(self):
-        return AESEnryptionUtils.AESEncryption().decrypt(self.tcpClientSocket.recv(1024).decode())
+        encrypted = self.tcpClientSocket.recv(1024).decode()
+        message = AESEnryptionUtils.AESEncryption().decrypt(encrypted)
+        LoadTesting.log_receive("Peer", message)
+        return message
