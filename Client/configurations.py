@@ -1,6 +1,6 @@
 from rich.console import Console
 
-import db
+from Client.db import DB
 
 port = 15600
 portUDP = 15500
@@ -12,6 +12,6 @@ accounts = {}
 tcpThreads = {}
 
 # db initialization
-db = db.DB()
+db = DB()
 
 console = Console(color_system="windows")

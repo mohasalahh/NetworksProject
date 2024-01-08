@@ -3,7 +3,9 @@ import threading
 import select
 import logging
 
+from LoadTesting import LoadTesting
 from Peer.configurations import console
+from Utils import AESEnryptionUtils
 from Utils.AESEnryptionUtils import AESEncryption
 
 
@@ -76,7 +78,7 @@ class PeerServer(threading.Thread):
                         # if the user is not chatting, then the ip and the socket of
                         # this peer is assigned to server variables
                         if self.isChatRequested == 0:
-                            console.print("[bold blue]"+self.username + "[/bold blue] is trying to connect from " + str(addr))
+                            # console.print("[bold blue]"+self.username + "[/bold blue] is trying to connect from " + str(addr))
                             self.connectedPeerSocket = connected
                             self.connectedPeerIP = addr[0]
                     # if the socket that receives the data is the one that
@@ -85,7 +87,7 @@ class PeerServer(threading.Thread):
                         # message is received from connected peer
                         message_received = AESEncryption().decrypt(s.recv(1024).decode())
                         # logs the received message
-                        logging.info("Received from " + str(self.connectedPeerIP) + " -> " + str(message_received))
+                        # logging.info("Received from " + str(self.connectedPeerIP) + " -> " + str(message_received))
                         # if message is a request message it means that this is the receiver side peer server
                         # so evaluate the chat request
                         if len(message_received) > 11 and message_received[:12] == "CHAT-REQUEST":
@@ -99,6 +101,8 @@ class PeerServer(threading.Thread):
                                 # sends a busy message to the peer that sends a chat request when this peer is
                                 # already chatting with someone else
                                 message = "BUSY"
+
+                                LoadTesting.log_send("Peer", message)
                                 s.send(AESEncryption().encrypt(message).encode())
                                 # remove the peer from the inputs list so that it will not monitor this socket
                                 inputs.remove(s)
@@ -111,11 +115,11 @@ class PeerServer(threading.Thread):
                                 self.chattingClientName = message_received[2]
                                 # prints prompt for the incoming chat request
                                 console.print("Incoming chat request from [bold cyan]" + self.chattingClientName + "[/bold cyan] >> ")
-                                print("Enter OK to accept or REJECT to reject:  ")
+                                console.print("Enter [bold green]ACCEPT[/bold green] to accept or [bold red]REJECT[/bold red] to reject:  ")
                                 # makes isChatRequested = 1 which means that peer is chatting with someone
                                 self.isChatRequested = 1
                         # if an OK message is received then ischatrequested is made 1 and then next messages will be shown to the peer of this server
-                        elif message_received == "OK":
+                        elif message_received == "ACCEPT":
                             self.isChatRequested = 1
                         # if an REJECT message is received then ischatrequested is made 0 so that it can receive any other chat requests
                         elif message_received == "REJECT":
@@ -146,6 +150,8 @@ class PeerServer(threading.Thread):
                             print("Press enter to quit the chat: ")
             # handles the exceptions, and logs them
             except OSError as oErr:
-                logging.error("OSError: {0}".format(oErr))
+                # logging.error("OSError: {0}".format(oErr))
+                print("OSError: {0}".format(oErr))
             except ValueError as vErr:
-                logging.error("ValueError: {0}".format(vErr))
+                # logging.error("ValueError: {0}".format(vErr))
+                print("ValueError: {0}".format(vErr))
