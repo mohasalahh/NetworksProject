@@ -11,22 +11,21 @@ class AuthTest(unittest.TestCase):
         self.peer = PeerThread()
         self.peer.start()
 
-    def test_login_succeed(self):
-        login_result = self.peer.login("hashed", "a", 16)
-        self.assertEqual(login_result, 1)
-
     def test_login_failed(self):
         login_result = self.peer.login("hashed", "aaa", 16)
         self.assertNotEquals(login_result, 1)
 
     def test_creating_user(self):
-        create_result = self.peer.create_account("hashed", "a")
+        create_result = self.peer.create_account("test_user_11", "a")
         self.assertEqual(create_result, 1)
 
     def test_creating_user_exist(self):
-        # TODO:
-        create_result = self.peer.create_account("hashed", "a")
+        create_result = self.peer.create_account("test_user_11", "a")
         self.assertEqual(create_result, 0)
+
+    def test_login_succeed(self):
+        login_result = self.peer.login("test_user_11", "a", 13)
+        self.assertEqual(login_result, 1)
 
 
 if __name__ == '__main__':
