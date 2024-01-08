@@ -76,7 +76,7 @@ class PeerServer(threading.Thread):
                         # if the user is not chatting, then the ip and the socket of
                         # this peer is assigned to server variables
                         if self.isChatRequested == 0:
-                            console.print("[bold blue]"+self.username + "[/bold blue] is trying to connect from " + str(addr))
+                            # console.print("[bold blue]"+self.username + "[/bold blue] is trying to connect from " + str(addr))
                             self.connectedPeerSocket = connected
                             self.connectedPeerIP = addr[0]
                     # if the socket that receives the data is the one that
@@ -111,11 +111,11 @@ class PeerServer(threading.Thread):
                                 self.chattingClientName = message_received[2]
                                 # prints prompt for the incoming chat request
                                 console.print("Incoming chat request from [bold cyan]" + self.chattingClientName + "[/bold cyan] >> ")
-                                print("Enter OK to accept or REJECT to reject:  ")
+                                console.print("Enter [bold green]ACCEPT[/bold green] to accept or [bold red]REJECT[/bold red] to reject:  ")
                                 # makes isChatRequested = 1 which means that peer is chatting with someone
                                 self.isChatRequested = 1
                         # if an OK message is received then ischatrequested is made 1 and then next messages will be shown to the peer of this server
-                        elif message_received == "OK":
+                        elif message_received == "ACCEPT":
                             self.isChatRequested = 1
                         # if an REJECT message is received then ischatrequested is made 0 so that it can receive any other chat requests
                         elif message_received == "REJECT":

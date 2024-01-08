@@ -42,17 +42,19 @@ class PeerClient(threading.Thread):
             logging.info("Send to " + self.ipToConnect + ":" + str(self.portToConnect) + " -> " + requestMessage)
             # sends the chat request
             self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(requestMessage).encode())
-            print("Request message " + requestMessage + " is sent...")
+
+            console.print("[bold green]Request sent to user[/bold green]")
             # received a response from the peer which the request message is sent to
 
             self.responseReceived = AESEnryptionUtils.AESEncryption().decrypt(self.tcpClientSocket.recv(1024).decode())
             # logs the received message
             logging.info("Received from " + self.ipToConnect + ":" + str(self.portToConnect) + " -> " + self.responseReceived)
-            print("Response is " + self.responseReceived)
+            # print("Response is " + self.responseReceived)
             # parses the response for the chat request
             self.responseReceived = self.responseReceived.split()
             # if response is ok then incoming messages will be evaluated as client messages and will be sent to the connected server
-            if self.responseReceived[0] == "OK":
+            if self.responseReceived[0] == "ACCEPT":
+                console.print("[bold green]Chat room started[/bold green]")
                 # changes the status of this client's server to chatting
                 self.peerServer.isChatRequested = 1
                 # sets the server variable with the username of the peer that this one is chatting
@@ -60,7 +62,9 @@ class PeerClient(threading.Thread):
                 # as long as the server status is chatting, this client can send messages
                 while self.peerServer.isChatRequested == 1:
                     # message input prompt
-                    messageSent = console.input("[bold blue]"+self.username + ":[/bold blue] ")
+                    messageSent = console.input("")
+                    if messageSent != ":q":
+                        console.print("[bold cyan]You:[/bold cyan] " + messageSent)
                     # sends the message to the connected peer, and logs it
                     self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(messageSent).encode())
                     logging.info("Send to " + self.ipToConnect + ":" + str(self.portToConnect) + " -> " + messageSent)
@@ -87,28 +91,30 @@ class PeerClient(threading.Thread):
             # logs the message and then the socket is closed
             elif self.responseReceived[0] == "REJECT":
                 self.peerServer.isChatRequested = 0
-                print("client of requester is closing...")
+                console.print("[bold red]User denied request[/bold red]")
                 self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt("REJECT").encode())
                 logging.info("Send to " + self.ipToConnect + ":" + str(self.portToConnect) + " -> REJECT")
                 self.tcpClientSocket.close()
             # if a busy response is received, closes the socket
             elif self.responseReceived[0] == "BUSY":
-                print("Receiver peer is busy")
+                console.print("[bold yellow]User is currently inside a chat room[/bold yellow]")
                 self.tcpClientSocket.close()
         # if the client is created with OK message it means that this is the client of receiver side peer
         # so it sends an OK message to the requesting side peer server that it connects and then waits for the user inputs.
-        elif self.responseReceived == "OK":
+        elif self.responseReceived == "ACCEPT":
             # server status is changed
             self.peerServer.isChatRequested = 1
             # ok response is sent to the requester side
-            okMessage = "OK"
+            okMessage = "ACCEPT"
             self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(okMessage).encode())
             logging.info("Send to " + self.ipToConnect + ":" + str(self.portToConnect) + " -> " + okMessage)
-            print("Client with OK message is created... and sending messages")
+            console.print("[bold green]Chat room started[/bold green]")
             # client can send messsages as long as the server status is chatting
             while self.peerServer.isChatRequested == 1:
                 # input prompt for user to enter message
                 messageSent = input("")
+                if messageSent == ":q":
+                    console.print("[bold cyan]You:[/bold cyan] " + messageSent)
                 self.tcpClientSocket.send(AESEnryptionUtils.AESEncryption().encrypt(messageSent).encode())
                 logging.info("Send to " + self.ipToConnect + ":" + str(self.portToConnect) + " -> " + messageSent)
                 # if a quit message is sent, server status is changed

@@ -188,13 +188,13 @@ class PeerThread(threading.Thread):
             # sent an OK message to the requesting side peer server and waits for the user input
             # main process waits for the client thread to finish its chat
             elif self.peerServer.isChatRequested:
-                if choice == "OK":
-                    okMessage = "OK " + self.loginCredentials[0]
+                if choice == "ACCEPT":
+                    okMessage = "ACCEPT " + self.loginCredentials[0]
                     logging.info("Send to " + self.peerServer.connectedPeerIP + " -> " + okMessage)
                     self.peerServer.connectedPeerSocket.send(
                         AESEnryptionUtils.AESEncryption().encrypt(okMessage).encode())
                     self.peerClient = PeerClient(self.peerServer.connectedPeerIP, self.peerServer.connectedPeerPort,
-                                                 self.loginCredentials[0], self.peerServer, "OK")
+                                                 self.loginCredentials[0], self.peerServer, "ACCEPT")
                     self.peerClient.start()
                     self.peerClient.join()
                 # if user rejects the chat request then reject message is sent to the requester side
